@@ -7,28 +7,30 @@ The primary architectural goal of this MVP is to establish an **Outbound Executi
 ---
 
 ## 🏗️ Core Architecture Overview
-┌─────────────────────────────────────────────────────────────────┐
-│                      KubeForge Control Plane                    │
-│  ┌──────────────────────┐              ┌─────────────────────┐  │
-│  │     Web Dashboard    │              │    SQLite/Postgres  │  │
-│  └──────────┬───────────┘              └──────────┬──────────┘  │
-│             │                                     │             │
-│  ┌──────────▼─────────────────────────────────────▼──────────┐  │
-│  │              Central Orchestrator (Go API)                │  │
-│  └──────────────────────────────▲────────────────────────────┘  │
-└─────────────────────────────────┼───────────────────────────────┘
-│
-Outbound TLS Tunnel (WebSocket/gRPC)
-│
-┌─────────────────────────────────┴───────────────────────────────┐
-│                        Target VPS Node                          │
-│  ┌───────────────────────────────────────────────────────────┐  │
-│  │                    KubeForge Agent (Go)                   │  │
-│  └──────────────────────────────┬────────────────────────────┘  │
-│                                 ▼                               │
-│                  [ Host OS Shell Execution ]                    │
-│          (containerd -> kubeadm -> kubelet -> cluster)          │
-└─────────────────────────────────────────────────────────────────┘
+
+```mermaid
+graph TD
+    subgraph CP [KubeForge Control Plane]
+        direction LR
+        UI[Web Dashboard] --> API[Central Orchestrator Go API]
+        DB[(SQLite / Postgres)] <--> API
+    end
+
+    subgraph Node [Target VPS Node]
+        direction TB
+        Agent[KubeForge Agent Go] --> Shell[Host OS Shell Execution]
+        Shell --> K8s[containerd ➔ kubeadm ➔ kubelet ➔ cluster]
+    end
+
+    Agent -- Outbound TLS Tunnel WebSocket/gRPC --> API
+    API -- Tasks & Commands --> Agent
+
+    style CP fill:#111,stroke:#333,stroke-width:2px,color:#fff
+    style Node fill:#111,stroke:#333,stroke-width:2px,color:#fff
+    style Agent fill:#1f6feb,stroke:#fff,stroke-width:1px,color:#fff
+    style API fill:#238636,stroke:#fff,stroke-width:1px,color:#fff
+```
+
 ---
 
 ## 📅 Day-by-Day Implementation Sprint
@@ -110,4 +112,4 @@ Outbound TLS Tunnel (WebSocket/gRPC)
 ## 🔮 Beyond the MVP (Future Milestones)
 - [ ] **Cross-Provider Overlay Networking:** Integration of WireGuard or a Cilium mesh tunnel to tie nodes securely across distinct clouds.
 - [ ] **Service Catalog:** A built-in marketplace registry parsing Helm charts to enable one-click infrastructure applications (Databases, Ingress, Cert-Manager).
-- [ ] **Autonomous Self-Healing:** Monitoring loops where agents detect structural health degradation and re-trigger individu
+- [ ] **Autonomous Self-Healing:** Monitoring loops where agents detect structural health degradation and re-trigger individual dependency installations autonomously.
